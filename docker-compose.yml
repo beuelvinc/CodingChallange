@@ -1,0 +1,36 @@
+version: '3.7'
+services:
+  db:
+    image: postgres:12
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD:  demo
+      POSTGRES_DB: demo_db
+
+
+  django_gunicorn:
+      build:
+        context: .
+      ports:
+        - "8000:8000"
+      depends_on:
+        - db
+        - cache
+      command: >
+          sh -c "./wait-for-it/wait-for-it.sh db:5432 && python manage.py migrate --no-input && python manage.py collectstatic --no-input && gunicorn CodeChallange.wsgi:application --bind 0.0.0.0:8000"
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - cache:/data_redis
+
+volumes:
+  cache:
+    driver: local
+
